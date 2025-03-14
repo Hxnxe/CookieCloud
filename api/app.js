@@ -6,9 +6,16 @@ const app = express();
 const cors = require('cors');
 app.use(cors());
 
+// 添加静态文件支持
+app.use(express.static(path.join(__dirname, 'public')));
+
 const data_dir = path.join(__dirname, 'data');
 // make dir if not exist
 if (!fs.existsSync(data_dir)) fs.mkdirSync(data_dir);
+
+// 确保public目录存在
+const public_dir = path.join(__dirname, 'public');
+if (!fs.existsSync(public_dir)) fs.mkdirSync(public_dir);
 
 var multer = require('multer');
 var forms = multer({limits: { fieldSize: 100*1024*1024 }});
@@ -21,8 +28,24 @@ app.use(bodyParser.urlencoded({ extended: true }));
 const api_root = process.env.API_ROOT ? process.env.API_ROOT.trim().replace(/\/+$/, '') : '';
 // console.log(api_root, process.env);
 
+// 根路径处理
 app.all(`${api_root}/`, (req, res) => {
-    res.send('Hello World!'+`API ROOT = ${api_root}`);
+    // 如果是API请求，返回API信息
+    if (req.headers['content-type'] && req.headers['content-type'].includes('application/json')) {
+        res.json({
+            status: 'ok',
+            message: 'CookieCloud API is running',
+            api_root: api_root
+        });
+    } else {
+        // 否则重定向到index.html
+        res.sendFile(path.join(__dirname, 'public', 'index.html'));
+    }
+});
+
+// 添加一个通配符路由，确保所有请求都能被处理
+app.all('*', (req, res) => {
+    res.send('CookieCloud API Server. Please use the correct endpoints.');
 });
 
 app.post(`${api_root}/update`, (req, res) => {

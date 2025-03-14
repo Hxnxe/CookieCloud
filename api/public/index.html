@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CookieCloud API</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+            color: #333;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: #2c3e50;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 10px;
+        }
+        .container {
+            background-color: #f9f9f9;
+            border-radius: 5px;
+            padding: 20px;
+            margin-top: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        code {
+            background-color: #f1f1f1;
+            padding: 2px 5px;
+            border-radius: 3px;
+            font-family: monospace;
+        }
+        .endpoint {
+            margin-bottom: 15px;
+            padding: 10px;
+            background-color: #fff;
+            border-left: 4px solid #3498db;
+        }
+    </style>
+</head>
+<body>
+    <h1>CookieCloud API</h1>
+    <div class="container">
+        <p>这是CookieCloud的API服务器，用于存储和获取加密的Cookie数据。</p>
+        
+        <h2>API端点</h2>
+        <div class="endpoint">
+            <h3>更新数据</h3>
+            <p><code>POST /update</code></p>
+            <p>请求体需要包含 <code>encrypted</code> 和 <code>uuid</code> 字段。</p>
+        </div>
+        
+        <div class="endpoint">
+            <h3>获取数据</h3>
+            <p><code>GET /get/:uuid</code></p>
+            <p>如果请求体中包含 <code>password</code> 字段，将返回解密后的数据。</p>
+        </div>
+    </div>
+</body>
+</html> 
