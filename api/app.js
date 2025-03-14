@@ -43,11 +43,6 @@ app.all(`${api_root}/`, (req, res) => {
     }
 });
 
-// 添加一个通配符路由，确保所有请求都能被处理
-app.all('*', (req, res) => {
-    res.send('CookieCloud API Server. Please use the correct endpoints.');
-});
-
 app.post(`${api_root}/update`, (req, res) => {
     const { encrypted, uuid } = req.body;
     // none of the fields can be empty
@@ -99,12 +94,21 @@ app.all(`${api_root}/get/:uuid`, (req, res) => {
     }
 });
 
-
 app.use(function (err, req, res, next) {
     console.error(err);
     res.status(500).send('Internal Serverless Error');
 });
 
+// 添加一个通配符路由，确保所有请求都能被处理
+// 注意：这个路由必须放在所有其他路由之后
+app.all('*', (req, res) => {
+    // 检查是否是对根路径的请求
+    if (req.path === '/' || req.path === '') {
+        res.sendFile(path.join(__dirname, 'public', 'index.html'));
+    } else {
+        res.status(404).send('CookieCloud API Server. Endpoint not found. Please use the correct endpoints.');
+    }
+});
 
 const port = process.env.PORT || 8088;
 app.listen(port, () => {
