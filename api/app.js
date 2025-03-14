@@ -6,21 +6,25 @@ const app = express();
 const cors = require('cors');
 app.use(cors());
 
+// 检查是否在Vercel环境中运行
+const isVercel = process.env.VERCEL === '1';
+
 // 添加静态文件支持
 app.use(express.static(path.join(__dirname, 'public')));
 
 // 使用内存存储代替文件系统
 const memoryStorage = {};
 
-// 在Vercel环境中，我们不能依赖文件系统进行持久化存储
-// 但我们仍然创建目录以便在本地开发时使用
-const data_dir = path.join(__dirname, 'data');
-// make dir if not exist
-if (!fs.existsSync(data_dir)) fs.mkdirSync(data_dir);
+// 只在非Vercel环境中创建目录
+if (!isVercel) {
+  // 在本地环境中创建数据目录
+  const data_dir = path.join(__dirname, 'data');
+  if (!fs.existsSync(data_dir)) fs.mkdirSync(data_dir);
 
-// 确保public目录存在
-const public_dir = path.join(__dirname, 'public');
-if (!fs.existsSync(public_dir)) fs.mkdirSync(public_dir);
+  // 确保public目录存在
+  const public_dir = path.join(__dirname, 'public');
+  if (!fs.existsSync(public_dir)) fs.mkdirSync(public_dir);
+}
 
 var multer = require('multer');
 var forms = multer({limits: { fieldSize: 100*1024*1024 }});
@@ -40,11 +44,25 @@ app.all(`${api_root}/`, (req, res) => {
         res.json({
             status: 'ok',
             message: 'CookieCloud API is running',
-            api_root: api_root
+            api_root: api_root,
+            isVercel: isVercel
         });
     } else {
-        // 否则重定向到index.html
-        res.sendFile(path.join(__dirname, 'public', 'index.html'));
+        // 否则返回HTML内容
+        try {
+            res.sendFile(path.join(__dirname, 'public', 'index.html'));
+        } catch (error) {
+            // 如果文件不存在，返回简单的HTML
+            res.send(`
+                <html>
+                <head><title>CookieCloud API</title></head>
+                <body>
+                    <h1>CookieCloud API</h1>
+                    <p>API服务器正在运行</p>
+                </body>
+                </html>
+            `);
+        }
     }
 });
 
@@ -61,10 +79,15 @@ app.post(`${api_root}/update`, (req, res) => {
         memoryStorage[uuid] = { encrypted };
         
         // 如果不是Vercel环境，也保存到文件
-        if (process.env.VERCEL !== '1') {
-            const file_path = path.join(data_dir, path.basename(uuid)+'.json');
-            const content = JSON.stringify({"encrypted":encrypted});
-            fs.writeFileSync(file_path, content);
+        if (!isVercel) {
+            try {
+                const file_path = path.join(__dirname, 'data', path.basename(uuid)+'.json');
+                const content = JSON.stringify({"encrypted":encrypted});
+                fs.writeFileSync(file_path, content);
+            } catch (fileError) {
+                console.error('Error writing to file:', fileError);
+                // 继续执行，因为我们已经保存到内存中
+            }
         }
         
         res.json({"action":"done"});
@@ -90,12 +113,17 @@ app.all(`${api_root}/get/:uuid`, (req, res) => {
             data = memoryStorage[uuid];
         } 
         // 如果不是Vercel环境且内存中没有，尝试从文件获取
-        else if (process.env.VERCEL !== '1') {
-            const file_path = path.join(data_dir, path.basename(uuid)+'.json');
-            if (fs.existsSync(file_path)) {
-                data = JSON.parse(fs.readFileSync(file_path));
-                // 存入内存
-                memoryStorage[uuid] = data;
+        else if (!isVercel) {
+            try {
+                const file_path = path.join(__dirname, 'data', path.basename(uuid)+'.json');
+                if (fs.existsSync(file_path)) {
+                    data = JSON.parse(fs.readFileSync(file_path));
+                    // 存入内存
+                    memoryStorage[uuid] = data;
+                }
+            } catch (fileError) {
+                console.error('Error reading from file:', fileError);
+                // 继续执行，可能内存中有数据
             }
         }
         
@@ -132,14 +160,27 @@ app.use(function (err, req, res, next) {
 app.all('*', (req, res) => {
     // 检查是否是对根路径的请求
     if (req.path === '/' || req.path === '') {
-        res.sendFile(path.join(__dirname, 'public', 'index.html'));
+        try {
+            res.sendFile(path.join(__dirname, 'public', 'index.html'));
+        } catch (error) {
+            // 如果文件不存在，返回简单的HTML
+            res.send(`
+                <html>
+                <head><title>CookieCloud API</title></head>
+                <body>
+                    <h1>CookieCloud API</h1>
+                    <p>API服务器正在运行</p>
+                </body>
+                </html>
+            `);
+        }
     } else {
         res.status(404).send('CookieCloud API Server. Endpoint not found. Please use the correct endpoints.');
     }
 });
 
 // 只在非Vercel环境中启动服务器
-if (process.env.VERCEL !== '1') {
+if (!isVercel) {
     const port = process.env.PORT || 8088;
     app.listen(port, () => {
         console.log(`Server start on http://localhost:${port}${api_root}`);
