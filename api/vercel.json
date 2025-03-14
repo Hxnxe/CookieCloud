@@ -2,7 +2,7 @@
   "version": 2,
   "builds": [
     {
-      "src": "app.js",
+      "src": "index.js",
       "use": "@vercel/node"
     }
   ],
@@ -13,18 +13,19 @@
     },
     {
       "src": "/update",
-      "dest": "/app.js"
+      "dest": "/index.js"
     },
     {
       "src": "/get/(.*)",
-      "dest": "/app.js"
+      "dest": "/index.js"
     },
     {
       "src": "/(.*)",
-      "dest": "/app.js"
+      "dest": "/index.js"
     }
   ],
   "env": {
-    "API_ROOT": ""
+    "API_ROOT": "",
+    "VERCEL": "1"
   }
 } 
